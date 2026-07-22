@@ -126,7 +126,12 @@ export async function copyDirectory(
       await copyDirectory(srcPath, destPath, stats);
     } else {
       if (await shouldCopy(srcPath, destPath, stats)) {
-        await fs.copyFile(srcPath, destPath);
+        try {
+          await fs.unlink(destPath).catch(() => {});
+          await fs.link(srcPath, destPath);
+        } catch {
+          await fs.copyFile(srcPath, destPath);
+        }
         stats.copied++;
       } else {
         stats.skipped++;
@@ -167,7 +172,12 @@ export async function copyWithCache(
     await fs.mkdir(destDirPath, { recursive: true });
 
     if (await shouldCopy(srcPath, destPath, stats)) {
-      await fs.copyFile(srcPath, destPath);
+      try {
+        await fs.unlink(destPath).catch(() => {});
+        await fs.link(srcPath, destPath);
+      } catch {
+        await fs.copyFile(srcPath, destPath);
+      }
       stats.copied++;
       console.log(`  ✓ ${file}`);
     } else {

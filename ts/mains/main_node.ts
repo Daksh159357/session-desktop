@@ -1,3 +1,5 @@
+import { ProfileManager } from '../node/profiles/profile_manager';
+import { ProfileMigration } from '../node/profiles/profile_migration';
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable no-void */
 /* eslint-disable import/first */
@@ -769,17 +771,8 @@ app.on('ready', async () => {
     console.log(`crowdin locale is ${loadedLocale.crowdinLocale}`);
   }
 
-  const key = getDefaultSQLKey();
-  // Try to show the main window with the default key
-  // If that fails then show the password window
-  const dbHasPassword = userConfig.get('dbHasPassword');
-  if (dbHasPassword) {
-    console.log('showing password window');
-    await showPasswordWindow();
-  } else {
-    console.log('showing main window');
-    await showMainWindow(key);
-  }
+  console.log('showing password window');
+  await showPasswordWindow();
 });
 
 function getDefaultSQLKey() {
@@ -847,6 +840,29 @@ async function showMainWindow(sqlKey: string, passwordAttempt = false) {
   setupMenu();
 }
 
+function lockApp() {
+  console.log('Locking active profile and returning to unlock screen...');
+  if (mainWindow) {
+    try {
+      mainWindow.close();
+    } catch (e) {
+      console.warn('Failed to close mainWindow:', e);
+    }
+    mainWindow = null;
+  }
+
+  try {
+    sqlNode.close();
+  } catch (e) {
+    console.warn('Error closing database connection during lock:', e);
+  }
+
+  ProfileManager.lockActiveProfile();
+  ready = false;
+
+  void showPasswordWindow();
+}
+
 function setupMenu() {
   const { platform } = process;
   const menuOptions = {
@@ -857,6 +873,7 @@ function setupMenu() {
     openReleaseNotes,
     openSupportPage,
     platform,
+    lockApp,
   };
   const template = createTemplate(menuOptions);
   const menu = Menu.buildFromTemplate(template);
@@ -958,6 +975,12 @@ ipc.on('locale-data', event => {
   };
 });
 
+ipc.on('is-sub-profile', event => {
+  const currentPath = app.getPath('userData');
+  // eslint-disable-next-line no-param-reassign
+  event.returnValue = currentPath.includes(path.join('profiles', ''));
+});
+
 ipc.on('draw-attention', () => {
   if (!mainWindow) {
     return;
@@ -1005,11 +1028,37 @@ ipc.on('close-about', () => {
 ipc.on('password-window-login', async (event, passPhrase) => {
   try {
     const passwordAttempt = true;
-    // Note: we don't call `password-window-login-response` on success as the ipc listener is linked to a dead object
-    await showMainWindow(passPhrase, passwordAttempt);
-  } catch (e) {
+    const defaultUserDataPath = getRealPath(app.getPath('userData'));
+
+    // 1. Attempt zero-knowledge unlock of existing encrypted profiles
+    let profile = await ProfileManager.unlockProfile(defaultUserDataPath, passPhrase);
+
+    // 2. If no profile unlocked, attempt legacy single-profile migration
+    if (!profile) {
+      profile = await ProfileMigration.migrateLegacyProfileIfNeeded(defaultUserDataPath, passPhrase);
+    }
+
+    // 3. If still no matching profile, create a new encrypted profile for this credential
+    if (!profile) {
+      console.log('No matching profile found. Creating a new encrypted profile for credential...');
+      profile = await ProfileManager.createProfile(defaultUserDataPath, passPhrase);
+    }
+
+    // Override Electron's userData path to point to active profile directory
+    app.setPath('userData', profile.profileDir);
+    userConfig.setTargetPath(path.join(profile.profileDir, 'config.json'));
+    ephemeralConfig.setTargetPath(path.join(profile.profileDir, 'ephemeral.json'));
+
+    await showMainWindow(profile.dbKey, passwordAttempt);
+
     try {
-      event.sender.send('password-window-login-response', tr('passwordIncorrect'));
+      event.sender.send('password-window-login-response', undefined);
+    } catch (e2) {
+      console.warn(`password-window-login-response send failed`, e2);
+    }
+  } catch (e: any) {
+    try {
+      event.sender.send('password-window-login-response', e?.message || tr('passwordIncorrect'));
     } catch (e2) {
       console.warn(`password-window-login-response failed`, e2);
     }

@@ -19,18 +19,24 @@ export const createTemplate = (options: {
   showAbout: () => void;
   saveDebugLog: (_event: any, additionalInfo?: string) => void;
   showWindow: () => void;
+  lockApp: () => void;
 }) => {
   if (!isString(options.platform)) {
     throw new TypeError('`options.platform` must be a string');
   }
 
-  const { openReleaseNotes, openSupportPage, platform, showAbout, saveDebugLog, showWindow } =
+  const { openReleaseNotes, openSupportPage, platform, showAbout, saveDebugLog, showWindow, lockApp } =
     options;
 
   const template = [
     {
       label: withAcceleratorPrefix(tr('file')),
       submenu: [
+        {
+          label: 'Lock / Switch Profile',
+          accelerator: 'CmdOrCtrl+L',
+          click: lockApp,
+        },
         {
           type: 'separator',
         },
@@ -147,14 +153,15 @@ export const createTemplate = (options: {
     return updateForMac(template, {
       showAbout,
       showWindow,
+      lockApp,
     });
   }
 
   return template;
 };
 
-function updateForMac(template: any, options: { showAbout: () => void; showWindow: () => void }) {
-  const { showAbout, showWindow } = options;
+function updateForMac(template: any, options: { showAbout: () => void; showWindow: () => void; lockApp: () => void }) {
+  const { showAbout, showWindow, lockApp } = options;
 
   // Remove About item and separator from Help menu, since it's on the first menu
   template[4].submenu.pop();
@@ -173,6 +180,11 @@ function updateForMac(template: any, options: { showAbout: () => void; showWindo
       },
       {
         type: 'separator',
+      },
+      {
+        label: 'Lock / Switch Profile',
+        accelerator: 'CmdOrCtrl+L',
+        click: lockApp,
       },
       {
         type: 'separator',

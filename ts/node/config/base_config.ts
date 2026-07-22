@@ -11,26 +11,30 @@ export function start(
     allowMalformedOnStartup?: boolean;
   } = {}
 ) {
-  const { allowMalformedOnStartup } = options;
-  let cachedValue: Record<string, ValueType> = {};
+  let currentPath = targetPath;
+  let cachedValue: any = Object.create(null);
 
-  try {
-    const text = readFileSync(targetPath, ENCODING);
-    cachedValue = JSON.parse(text);
-    console.log(`config/get: Successfully read ${name} config file`);
+  function load() {
+    try {
+      const text = readFileSync(currentPath, ENCODING);
+      cachedValue = JSON.parse(text);
+      console.log(`config/get: Successfully read ${name} config file`);
 
-    if (!cachedValue) {
-      console.log(`config/get: ${name} config value was falsy, cache is now empty object`);
+      if (!cachedValue) {
+        console.log(`config/get: ${name} config value was falsy, cache is now empty object`);
+        cachedValue = Object.create(null);
+      }
+    } catch (error) {
+      if (!options.allowMalformedOnStartup && error.code !== 'ENOENT') {
+        throw error;
+      }
+
+      console.log(`config/get: Did not find ${name} config file, cache is now empty object`);
       cachedValue = Object.create(null);
     }
-  } catch (error) {
-    if (!allowMalformedOnStartup && error.code !== 'ENOENT') {
-      throw error;
-    }
-
-    console.log(`config/get: Did not find ${name} config file, cache is now empty object`);
-    cachedValue = Object.create(null);
   }
+
+  load();
 
   function get(keyPath: string) {
     return cachedValue[keyPath];
@@ -40,19 +44,25 @@ export function start(
     cachedValue[keyPath] = value;
     console.log(`config/set: Saving ${name} config to disk`);
     const text = JSON.stringify(cachedValue, null, '  ');
-    writeFileSync(targetPath, text, ENCODING);
+    writeFileSync(currentPath, text, ENCODING);
     console.log(`config/set: Saved ${name} config to disk`);
   }
 
   function remove() {
     console.log(`config/remove: Deleting ${name} config from disk`);
-    unlinkSync(targetPath);
+    unlinkSync(currentPath);
     cachedValue = Object.create(null);
+  }
+
+  function setTargetPath(newPath: string) {
+    currentPath = newPath;
+    load();
   }
 
   return {
     set,
     get,
     remove,
+    setTargetPath,
   };
 }

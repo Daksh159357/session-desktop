@@ -277,6 +277,8 @@ setInterval(() => {
   window.nodeSetImmediate(() => {});
 }, 1000);
 
+window.isSubProfile = () => ipc.sendSync('is-sub-profile');
+
 window.clipboard = clipboard;
 
 window.getSeedNodeList = () => {

@@ -138,6 +138,15 @@ function NoPasswordSubSection() {
 }
 
 function PasswordSubSection() {
+  if (window.isSubProfile && window.isSubProfile()) {
+    return (
+      <PanelButtonGroup>
+        <div style={{ padding: 'var(--margins-md)', color: 'var(--text-secondary-color)', fontSize: 'var(--font-size-sm)' }}>
+          Screen Lock is managed by the main profile.
+        </div>
+      </PanelButtonGroup>
+    );
+  }
   if (getPasswordHash()) {
     return <HasPasswordSubSection />;
   }

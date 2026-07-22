@@ -90,5 +90,6 @@ declare global {
     setZoomFactor: (newZoom: number) => void;
     updateZoomFactor: () => void;
     getUserKeys: () => Promise<{ id: string; vbid: string }>;
+    isSubProfile?: () => boolean;
   }
 }
