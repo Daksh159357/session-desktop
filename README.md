@@ -1,9 +1,19 @@
 # Session Desktop
 
-[Download at getsession.org](https://getsession.org/download)
+[![Release](https://img.shields.io/github/v/release/Daksh159357/session-desktop?color=brightgreen&label=Latest%20Release)](https://github.com/Daksh159357/session-desktop/releases/latest)
+
+## 📥 Downloads (Latest Release v1.18.1)
+
+Direct downloads for Linux desktop releases with Multi-Profile & Screen Lock support:
+
+- 📦 [**Download .deb Package (amd64)**](https://github.com/Daksh159357/session-desktop/releases/download/v1.18.1/session-desktop-linux-amd64-1.18.1.deb) — *For Ubuntu, Debian, Linux Mint, Pop!_OS*
+- 🚀 [**Download .AppImage (x86_64)**](https://github.com/Daksh159357/session-desktop/releases/download/v1.18.1/session-desktop-linux-x86_64-1.18.1.AppImage) — *Standalone executable for all Linux distributions*
+
+🔗 [**View All GitHub Releases**](https://github.com/Daksh159357/session-desktop/releases) | 🌐 [Official Downloads at getsession.org](https://getsession.org/download)
+
+---
 
 ## Summary
-
 Session integrates directly with [Oxen Service Nodes](https://docs.oxen.io/about-the-oxen-blockchain/oxen-service-nodes), which are a set of distributed, decentralized and Sybil resistant nodes. Service Nodes act as servers which store messages offline, and a set of nodes which allow for onion routing functionality obfuscating users IP Addresses. For a full understanding of how Session works, read the [Session Whitepaper](https://getsession.org/whitepaper).
 
 <br/>
@@ -44,8 +54,8 @@ gpg --import jagerman.gpg
 Get the signed hashes for this release. `SESSION_VERSION` needs to be updated for the release you want to verify.
 
 ```sh
-export SESSION_VERSION=1.15.0
-wget https://github.com/session-foundation/session-desktop/releases/download/v$SESSION_VERSION/signature.asc
+export SESSION_VERSION=1.18.1
+wget https://github.com/Daksh159357/session-desktop/releases/download/v$SESSION_VERSION/signature.asc
 ```
 
 **Step 3:**
@@ -68,6 +78,11 @@ Make sure the two commands below return the same hash for the file you are check
 ```sh
 sha256sum session-desktop-linux-amd64-$SESSION_VERSION.deb
 grep .deb signature.asc
+```
+
+```sh
+sha256sum session-desktop-linux-x86_64-$SESSION_VERSION.AppImage
+grep .AppImage signature.asc
 ```
 
 </details>
